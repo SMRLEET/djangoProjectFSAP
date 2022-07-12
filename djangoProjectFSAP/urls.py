@@ -28,13 +28,25 @@ urlpatterns = [
     path('api/v1/', include(routers.presetRouter.urls)),
     path('api/v1/', include(routers.favoritePresetPacksRouter.urls)),
     path('api/v1/', include(routers.favoriteSamplePacksRouter.urls)),
-    path('api/v1/FavoritePacks/<int:pk>/', FavoritePacksAPIVIEW().as_view()),
-    path('api/v1/FPP/<int:pk>/', FavoritePresetPackAPIVIEW().as_view()),
+
     path('api/v1/FSP/<int:pk>/', FavoriteSamplePackAPIVIEW().as_view()),
     path('api/v1/FSP/', FavoriteSamplePackAPIVIEW().as_view()),
     path('api/v1/FPP/', FavoritePresetPackAPIVIEW().as_view()),
+
+    path('api/v1/FavoritePacks/<int:pk>/', FavoritePacksAPIVIEW().as_view()),
+    path('api/v1/FPP/<int:pk>/', FavoritePresetPackAPIVIEW().as_view()),
+
+    path('api/v1/CUPP/', CurentUserFavApiView.as_view()),
+    path('api/v1/CUSP/', CurentUserFavSPApiView.as_view()),
+
+    path('api/v1/PresetPackForCurrentUser/', PresetPackAPIVIEW.as_view()),
+    path('api/v1/SamplePackForCurrentUser/', SamplePackAPIVIEW.as_view()),
+
+    path('api/v1/getPresets/', PresetAPIVIEW.as_view()),
+
     path('api/v1/createuser/', UserAPIVIEW().as_view()),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
 
 ]

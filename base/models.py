@@ -127,6 +127,7 @@ class FavoriteSamplePacks(models.Model):
     sp_id = models.ForeignKey(SamplePack, on_delete=models.CASCADE)
 
 
+
 class FavoritePresetPacks(models.Model):
     class Meta:
         unique_together = ('user', 'pp_id')
