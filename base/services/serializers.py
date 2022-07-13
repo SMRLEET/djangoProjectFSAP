@@ -92,18 +92,35 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class CustomPresetModel:
-    def __init__(self, preset_id,name, instrument_id_id,instrument_id__instrument_name):
-        self.preset_id = preset_id
-        self.name=name
 
-        self.instrument_id_name = instrument_id__instrument_name
-        self.instrument_id_id = instrument_id_id
 
 
 class CustomPresetSerializer(serializers.Serializer):
     name = serializers.CharField()
     preset_id = serializers.IntegerField()
 
+    instrument_id__instrument_name = serializers.CharField()
+    instrument_id_id = serializers.IntegerField()
+
+
+class CustomPresetPackSerializer(serializers.Serializer):
+    pp_id = serializers.IntegerField()
+    name = serializers.CharField()
+    sytheseizer_id__sytheseizer_name = serializers.CharField()
+    genere_id__genere_name = serializers.CharField()
+    rating = serializers.IntegerField()
+    description = serializers.CharField()
+
+
+class CustomSamplePackSerializer(serializers.Serializer):
+    sp_id = serializers.IntegerField()
+    name = serializers.CharField()
+    genere_id__genere_name = serializers.CharField()
+    rating = serializers.IntegerField()
+    description = serializers.CharField()
+
+class CustomSampleSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    sample_id = serializers.IntegerField()
     instrument_id__instrument_name = serializers.CharField()
     instrument_id_id = serializers.IntegerField()

@@ -42,7 +42,11 @@ urlpatterns = [
     path('api/v1/PresetPackForCurrentUser/', PresetPackAPIVIEW.as_view()),
     path('api/v1/SamplePackForCurrentUser/', SamplePackAPIVIEW.as_view()),
 
+    path('api/v1/CurretPresetPackView/', CurrentPresetPackAPIVIEW.as_view()),
+    path('api/v1/CurretSamplePackView/', CurrentSamplePackAPIVIEW.as_view()),
+
     path('api/v1/getPresets/', PresetAPIVIEW.as_view()),
+    path('api/v1/getSamples/', SampleAPIVIEW.as_view()),
 
     path('api/v1/createuser/', UserAPIVIEW().as_view()),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
