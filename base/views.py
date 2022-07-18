@@ -3,9 +3,9 @@ import json
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, mixins, status
 from rest_framework.decorators import action, api_view
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -32,8 +32,8 @@ class InstrumentViewSet(viewsets.ModelViewSet):
 
 
 class SytheseizerViewSet(viewsets.ModelViewSet):
-    queryset = Instrument.objects.all()
-    serializer_class = InstrumentSerializer
+    queryset = Sytheseizer.objects.all()
+    serializer_class = SytheseizerSerializer
     permission_classes = (IsModerOrReadOnly,)
 
 
@@ -41,6 +41,7 @@ class SamplePackViewSet(viewsets.ModelViewSet):
     queryset = SamplePack.objects.all().order_by('-rating')
     serializer_class = SamplePackSerializer
     permission_classes = (IsOwnerOrReadOnly,)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['name']
     filterset_fields = ['genere_id', 'author_id']
@@ -50,35 +51,55 @@ class SamplePackViewSet(viewsets.ModelViewSet):
         return sendPackSP(request, pk)
 
 
-class SampleViewSet(viewsets.ModelViewSet):
+class SampleViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Sample.objects.all()
     serializer_class = SampleSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['sp_id_id', 'instrument_id']
-
+    def create(self, request, *args, **kwargs):
+        is_many = isinstance(request.data, list)
+        if not is_many:
+            return super(SampleViewSet, self).create(request, *args, **kwargs)
+        else:
+            serializer = self.get_serializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class PresetPackViewSet(viewsets.ModelViewSet):
     queryset = PresetPack.objects.all()
     serializer_class = PresetPackSerializer
     permission_classes = (IsOwnerOrReadOnly,)
+    parser_classes = (JSONParser,MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['name']
     filterset_fields = ['genere_id', 'author_id', 'sytheseizer_id']
-    parser_classes = (FileUploadParser,)
+
 
     @action(detail=True, methods=['get'])
     def get_file(self, request, pk=None):
         return sendPackPP(request, pk)
 
 
-class PresetViewSet(viewsets.ModelViewSet):
+class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Preset.objects.all()
     serializer_class = PresetSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['pp_id_id', 'instrument_id']
 
+    def create(self, request, *args, **kwargs):
+        is_many = isinstance(request.data, list)
+        if not is_many:
+            return super(PresetViewSet, self).create(request, *args, **kwargs)
+        else:
+            serializer = self.get_serializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class CurentUserFavApiView(APIView):
     def post(self, request):
@@ -153,11 +174,11 @@ class FavoritePacksAPIVIEW(APIView):
 class UserAPIVIEW(generics.ListCreateAPIView):
     # queryset = CustomUser.objects.all()
     # serializer_class = CustomUserSerializer
-    def post(self, requset):
-        serializer = CustomUserSerializer(data=requset.data)
+    def post(self, request):
+        serializer = CustomUserSerializer(data=request.data)
         try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            serializer.is_valid(raise_exception=False)
+            CustomUser.objects.create_user(username=request.data['username'],email=request.data['email'],password=request.data['password'])
         except:
             return Response(404)
         refresh = RefreshToken.for_user(user=(CustomUser)(CustomUserSerializer))

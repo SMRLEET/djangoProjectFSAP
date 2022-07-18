@@ -23,7 +23,7 @@ class SytheseizerSerializer(serializers.ModelSerializer):
 
 
 class SamplePackSerializer(serializers.ModelSerializer):
-    # author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     class Meta:
         model = SamplePack
         fields = "__all__"
@@ -36,7 +36,7 @@ class SampleSerializer(serializers.ModelSerializer):
 
 
 class PresetPackSerializer(serializers.ModelSerializer):
-    #author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = PresetPack
@@ -89,7 +89,7 @@ class CustomUserGetSerializer(serializers.ModelSerializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = '__all__'
+        fields = ('username','email','password')
 
 
 
