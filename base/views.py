@@ -1,22 +1,20 @@
-import json
-
-from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, mixins, status
-from rest_framework.decorators import action, api_view
-from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser, JSONParser
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 import collections
 from base.services.permissions import *
-from base.services.serializers import *
+from base.serializers import *
 from .models import *
 from rest_framework import filters
 
-from .services.services import get_favorite_PP, get_favorite_SP, update_rating_after_fpp_inc, \
-    update_rating_after_fpp_dec, update_rating_after_fsp_inc, update_rating_after_fsp_dec, sendPackPP, sendPackSP
+from .services.services import  \
+    update_rating_after_fpp_dec,  update_rating_after_fsp_dec, \
+    get_favorite_PP, get_favorite_SP, sendPack
 
 
 class GenereViewSet(viewsets.ModelViewSet):
@@ -48,8 +46,11 @@ class SamplePackViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def get_file(self, request, pk=None):
-        return sendPackSP(request, pk)
+        return sendPack(request, SamplePack.objects.get(sp_id=pk).path)
 
+    @action(detail=True, methods=['get'])
+    def get_example(self, request, pk=None):
+        return sendPack(request, SamplePack.objects.get(sp_id=pk).example)
 
 class SampleViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Sample.objects.all()
@@ -57,6 +58,7 @@ class SampleViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
     permission_classes = (IsOwnerOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['sp_id_id', 'instrument_id']
+
     def create(self, request, *args, **kwargs):
         is_many = isinstance(request.data, list)
         if not is_many:
@@ -68,20 +70,23 @@ class SampleViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+
 class PresetPackViewSet(viewsets.ModelViewSet):
     queryset = PresetPack.objects.all()
     serializer_class = PresetPackSerializer
     permission_classes = (IsOwnerOrReadOnly,)
-    parser_classes = (JSONParser,MultiPartParser, FormParser)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['name']
     filterset_fields = ['genere_id', 'author_id', 'sytheseizer_id']
 
-
     @action(detail=True, methods=['get'])
     def get_file(self, request, pk=None):
-        return sendPackPP(request, pk)
+        return sendPack(request, PresetPack.objects.get(pp_id=pk).path)
 
+    @action(detail=True, methods=['get'])
+    def get_example(self, request, pk=None):
+        return sendPack(request, PresetPack.objects.get(pp_id=pk).example)
 
 class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Preset.objects.all()
@@ -101,22 +106,20 @@ class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+
 class CurentUserFavApiView(APIView):
     def post(self, request):
-        serializer = CustomUserGetSerializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        pk = CustomUser.objects.filter(username=serializer.data['username']).values('id')
-        pk = pk.values_list('id')[0]
-        return JsonResponse(PresetPackSerializer(get_favorite_PP(pk), many=True).data, safe=False)
+        queryset = FavoritePresetPacks.objects.filter(user__username=request.data['username']).values('id', 'user__username', 'pp_id_id',  'pp_id__name',
+                                                                                                      'pp_id__rating', 'pp_id__description')
+        return JsonResponse(CurentUserFavoritePresetPacksSerializer(queryset, many=True).data, safe=False)
 
 
 class CurentUserFavSPApiView(APIView):
+
     def post(self, request):
-        serializer = CustomUserGetSerializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        pk = CustomUser.objects.filter(username=serializer.data['username']).values('id')
-        pk = pk.values_list('id')[0]
-        return JsonResponse(SamplePackSerializer(get_favorite_SP(pk), many=True).data, safe=False)
+        queryset = FavoriteSamplePacks.objects.filter(user__username=request.data['username']).values('id', 'user__username', 'sp_id_id', 'sp_id__name',
+                                                      'sp_id__rating', 'sp_id__description')
+        return JsonResponse(CurentUserFavoriteSamplePacksSerializer(queryset, many=True).data, safe=False)
 
 
 class FavoritePresetPackAPIVIEW(APIView):
@@ -124,7 +127,13 @@ class FavoritePresetPackAPIVIEW(APIView):
         return Response({'Favorite Preset Packs': PresetPackSerializer(get_favorite_PP(pk), many=True).data})
 
     def post(self, request):
-        return Response({'posts': update_rating_after_fpp_inc(request)})
+
+        FavoritePresetPacks.objects.create(pp_id_id=request.data['pp_id'],user_id=request.user.id)
+
+        pp = PresetPack.objects.get(pp_id=request.data['pp_id'])
+        pp.rating += 1
+        pp.save(update_fields=['rating'])
+        return Response( { "Added"})
 
     def delete(self, request, *args, **kwargs):
         pk = kwargs.get("pk", None)
@@ -141,7 +150,12 @@ class FavoriteSamplePackAPIVIEW(APIView):
         return Response({'Favorite Sample Packs': SamplePackSerializer(get_favorite_SP(pk), many=True).data})
 
     def post(self, request):
-        return Response({'posts': update_rating_after_fsp_inc(request)})
+        FavoriteSamplePacks.objects.create(sp_id_id=request.data['sp_id'], user_id=request.user.id)
+
+        sp = SamplePack.objects.get(sp_id=request.data['sp_id'])
+        sp.rating += 1
+        sp.save(update_fields=['rating'])
+        return Response({"Added"})
 
     def delete(self, request, *args, **kwargs):
         pk = kwargs.get("pk", None)
@@ -160,15 +174,10 @@ class FavoriteSamplePacksViewSet(viewsets.ModelViewSet):
 
 
 class FavoritePresetPacksViewSet(viewsets.ModelViewSet):
-    queryset = FavoritePresetPacks.objects.filter()
+    queryset = FavoritePresetPacks.objects.all()
     serializer_class = FavoritePresetPacksSerializer
     permission_classes = (IsOwnerOrReadOnly,)
 
-
-class FavoritePacksAPIVIEW(APIView):
-    def get(self, request, pk=None):
-        return Response({'Favorite Preset Packs': PresetPackSerializer(get_favorite_PP(pk), many=True).data,
-                         'Favorite Sample Packs': SamplePackSerializer(get_favorite_SP(pk), many=True).data})
 
 
 class UserAPIVIEW(generics.ListCreateAPIView):
@@ -178,7 +187,8 @@ class UserAPIVIEW(generics.ListCreateAPIView):
         serializer = CustomUserSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=False)
-            CustomUser.objects.create_user(username=request.data['username'],email=request.data['email'],password=request.data['password'])
+            CustomUser.objects.create_user(username=request.data['username'], email=request.data['email'],
+                                           password=request.data['password'])
         except:
             return Response(404)
         refresh = RefreshToken.for_user(user=(CustomUser)(CustomUserSerializer))
@@ -219,7 +229,7 @@ class CurrentPresetPackAPIVIEW(generics.ListCreateAPIView):
     def post(self, request):
         pp = request.data['pp_id']
         p = PresetPack.objects.filter(pp_id=pp).values('pp_id', 'name', 'sytheseizer_id__sytheseizer_name',
-                                  'genere_id__genere_name', 'rating', 'description')
+                                                       'genere_id__genere_name', 'rating', 'description')
         return JsonResponse(CustomPresetPackSerializer(p, many=True).data, safe=False)
 
 
@@ -231,8 +241,9 @@ class CurrentSamplePackAPIVIEW(generics.ListCreateAPIView):
     def post(self, request):
         pp = request.data['sp_id']
         p = SamplePack.objects.filter(sp_id=pp).values('sp_id', 'name',
-                                  'genere_id__genere_name', 'rating', 'description')
+                                                       'genere_id__genere_name', 'rating', 'description', 'example')
         return JsonResponse(CustomSamplePackSerializer(p, many=True).data, safe=False)
+
 
 class SampleAPIVIEW(generics.ListCreateAPIView):
     queryset = Sample.objects.values('sample_id', 'name', 'instrument_id_id', 'instrument_id__instrument_name')

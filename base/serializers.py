@@ -50,7 +50,7 @@ class PresetSerializer(serializers.ModelSerializer):
 
 
 class FavoriteSamplePacksSerializer(serializers.ModelSerializer):
-    # user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = FavoriteSamplePacks
@@ -58,32 +58,31 @@ class FavoriteSamplePacksSerializer(serializers.ModelSerializer):
 
 
 class FavoritePresetPacksSerializer(serializers.ModelSerializer):
-    # user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = FavoritePresetPacks
         fields = "__all__"
 
 
-class FavoritePacksModel:
-    def __init__(self, id, user_id, pp_id_id, sp_id_id):
-        self.id = id
-        self.user_id = user_id
-        self.pp_id_id = pp_id_id
-        self.sp_id_id = sp_id_id
-
-
-class FavoritePacksSerializer(serializers.Serializer):
+class CurentUserFavoritePresetPacksSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    user_id = serializers.IntegerField()
+    user__username = serializers.CharField()
     pp_id_id = serializers.IntegerField()
+    pp_id__name = serializers.CharField()
+    pp_id__description = serializers.CharField()
+    pp_id__rating = serializers.IntegerField()
+
+
+
+class CurentUserFavoriteSamplePacksSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    user__username = serializers.CharField()
     sp_id_id = serializers.IntegerField()
+    sp_id__name = serializers.CharField()
+    sp_id__description = serializers.CharField()
+    sp_id__rating = serializers.IntegerField()
 
-
-class CustomUserGetSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ('username',)
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -118,7 +117,7 @@ class CustomSamplePackSerializer(serializers.Serializer):
     genere_id__genere_name = serializers.CharField()
     rating = serializers.IntegerField()
     description = serializers.CharField()
-
+    example = serializers.CharField()
 class CustomSampleSerializer(serializers.Serializer):
     name = serializers.CharField()
     sample_id = serializers.IntegerField()

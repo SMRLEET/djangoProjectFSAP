@@ -1,7 +1,7 @@
 from django.http import FileResponse
 
 from base.models import PresetPack, SamplePack, FavoritePresetPacks, FavoriteSamplePacks
-from base.services.serializers import FavoritePresetPacksSerializer, FavoriteSamplePacksSerializer
+from base.serializers import FavoritePresetPacksSerializer, FavoriteSamplePacksSerializer
 
 
 def get_favorite_PP(pk=None):
@@ -47,12 +47,8 @@ def update_rating_after_fsp_dec(pk) -> None:
     sp.rating -= 1
     sp.save(update_fields=['rating'])
 
-def sendPackPP(request,pk):
-    st=(str)(PresetPack.objects.get(pp_id=pk).path)
-    zip=open(st,'rb')
-    return FileResponse(zip)
+def sendPack(request,obj):
+    st=(str)(obj)
+    file=open(st,'rb')
+    return FileResponse(file)
 
-def sendPackSP(request,pk):
-    st=(str)(SamplePack.objects.get(sp_id=pk).path)
-    zip=open(st,'rb')
-    return FileResponse(zip)

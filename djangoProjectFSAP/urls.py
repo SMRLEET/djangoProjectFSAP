@@ -31,10 +31,11 @@ urlpatterns = [
 
     path('api/v1/FSP/<int:pk>/', FavoriteSamplePackAPIVIEW().as_view()),
     path('api/v1/FSP/', FavoriteSamplePackAPIVIEW().as_view()),
+    path('api/v1/FPP/<int:pk>/', FavoritePresetPackAPIVIEW().as_view()),
     path('api/v1/FPP/', FavoritePresetPackAPIVIEW().as_view()),
 
-    path('api/v1/FavoritePacks/<int:pk>/', FavoritePacksAPIVIEW().as_view()),
-    path('api/v1/FPP/<int:pk>/', FavoritePresetPackAPIVIEW().as_view()),
+
+
 
     path('api/v1/CUPP/', CurentUserFavApiView.as_view()),
     path('api/v1/CUSP/', CurentUserFavSPApiView.as_view()),

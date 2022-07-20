@@ -82,7 +82,7 @@ class SamplePack(models.Model):
     date_added = models.DateTimeField(auto_now=True)
     rating = models.IntegerField(default=0)
     path = models.FileField(upload_to=wrapper, max_length=100, blank=True)
-
+    example = models.FileField(upload_to=wrapper, max_length=100, blank=True)
 
 class Sample(models.Model):
     class Meta:
@@ -106,7 +106,7 @@ class PresetPack(models.Model):
     dateAdded = models.DateTimeField(auto_now=True)
     rating = models.IntegerField(default=0)
     path = models.FileField(upload_to=wrapper, max_length=100,blank=True)
-
+    example = models.FileField(upload_to=wrapper, max_length=100,blank=True)
 
 class Preset(models.Model):
     class Meta:
