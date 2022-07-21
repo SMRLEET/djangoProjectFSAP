@@ -1,4 +1,6 @@
-from django.http import FileResponse
+import os
+
+from django.http import FileResponse, HttpResponse
 
 from base.models import PresetPack, SamplePack, FavoritePresetPacks, FavoriteSamplePacks
 from base.serializers import FavoritePresetPacksSerializer, FavoriteSamplePacksSerializer
@@ -52,3 +54,12 @@ def sendPack(request,obj):
     file=open(st,'rb')
     return FileResponse(file)
 
+def destroyPacks(obj,pk):
+    path = obj.objects.get(pk=pk).path.__str__()
+    example = obj.objects.get(pk=pk).example.__str__()
+    if os.path.isfile(path):
+        os.remove(path)
+    if os.path.isfile(example):
+        os.remove(example)
+    obj.objects.get(pk=pk).delete()
+    return HttpResponse('Deleted successfully', status=204)
