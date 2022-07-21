@@ -1,7 +1,7 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404, HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, mixins, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes, api_view
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from base.serializers import *
 from .models import *
 from rest_framework import filters
 
+from .services.customAPIVIEW import CustomAPIView
 from .services.services import  \
     update_rating_after_fpp_dec,  update_rating_after_fsp_dec, \
     get_favorite_PP, get_favorite_SP, sendPack
@@ -51,6 +52,20 @@ class SamplePackViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def get_example(self, request, pk=None):
         return sendPack(request, SamplePack.objects.get(sp_id=pk).example)
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk", None)
+        if not pk:
+            return HttpResponse('No pk', status=416)
+        path = SamplePack.objects.get(pk=pk).path.__str__()
+        example = SamplePack.objects.get(pk=pk).example.__str__()
+        if os.path.isfile(path):
+            os.remove(path)
+        if os.path.isfile(example):
+            os.remove(example)
+        SamplePack.objects.get(pk=pk).delete()
+        return HttpResponse('Deleted successfully', status=204)
+
+
 
 class SampleViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Sample.objects.all()
@@ -80,6 +95,7 @@ class PresetPackViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     filterset_fields = ['genere_id', 'author_id', 'sytheseizer_id']
 
+
     @action(detail=True, methods=['get'])
     def get_file(self, request, pk=None):
         return sendPack(request, PresetPack.objects.get(pp_id=pk).path)
@@ -87,6 +103,19 @@ class PresetPackViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def get_example(self, request, pk=None):
         return sendPack(request, PresetPack.objects.get(pp_id=pk).example)
+
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk", None)
+        if not pk:
+            return HttpResponse('No pk', status=416)
+        path = PresetPack.objects.get(pk=pk).path.__str__()
+        example = PresetPack.objects.get(pk=pk).example.__str__()
+        if os.path.isfile(path):
+            os.remove(path)
+        if os.path.isfile(example):
+            os.remove(example)
+        PresetPack.objects.get(pk=pk).delete()
+        return HttpResponse('Deleted successfully', status=204)
 
 class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Preset.objects.all()
@@ -108,6 +137,7 @@ class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
 
 
 class CurentUserFavApiView(APIView):
+
     def post(self, request):
         queryset = FavoritePresetPacks.objects.filter(user__username=request.data['username']).values('id', 'user__username', 'pp_id_id',  'pp_id__name',
                                                                                                       'pp_id__rating', 'pp_id__description')
@@ -123,6 +153,25 @@ class CurentUserFavSPApiView(APIView):
 
 
 class FavoritePresetPackAPIVIEW(APIView):
+    queryset = FavoritePresetPacks.objects.all()
+    serializer_class = FavoritePresetPacksSerializer
+    permission_classes = (IsOwnerOrReadOnly,)
+
+
+
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if not IsOwnerOrReadOnly().has_object_permission(request, self, obj):
+            raise PermissionError()
+
+    def get_permissions(self):
+        if not (self.request.method in permissions.SAFE_METHODS):
+            return [permission() for permission in (IsOwnerOrReadOnly,)]
+        return super(FavoritePresetPackAPIVIEW, self).get_object_permissions()
+
+
+
     def get(self, request, pk):
         return Response({'Favorite Preset Packs': PresetPackSerializer(get_favorite_PP(pk), many=True).data})
 
@@ -133,25 +182,40 @@ class FavoritePresetPackAPIVIEW(APIView):
         pp = PresetPack.objects.get(pp_id=request.data['pp_id'])
         pp.rating += 1
         pp.save(update_fields=['rating'])
-        return Response( { "Added"})
+        return HttpResponse('Created successfully', status=201)
+
 
     def delete(self, request, *args, **kwargs):
+
         pk = kwargs.get("pk", None)
         if not pk:
             return Response({'ERROR: No pk'})
+        self.check_object_permissions(request,FavoritePresetPacks.objects.get(pk=pk))
         update_rating_after_fpp_dec(pk)
         fpp = FavoritePresetPacks.objects.get(id=pk)
         fpp.delete()
-        return Response('Content deleted')
+        return HttpResponse('Deleted successfully', status=204)
 
 
 class FavoriteSamplePackAPIVIEW(APIView):
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if not IsOwnerOrReadOnly().has_object_permission(request, self, obj):
+            raise PermissionError()
+
+    def get_permissions(self):
+        if not (self.request.method in permissions.SAFE_METHODS):
+            return [permission() for permission in (IsOwnerOrReadOnly,)]
+        return super(FavoriteSamplePackAPIVIEW, self).get_object_permissions()
+
+
+
     def get(self, request, pk=None):
         return Response({'Favorite Sample Packs': SamplePackSerializer(get_favorite_SP(pk), many=True).data})
 
     def post(self, request):
         FavoriteSamplePacks.objects.create(sp_id_id=request.data['sp_id'], user_id=request.user.id)
-
         sp = SamplePack.objects.get(sp_id=request.data['sp_id'])
         sp.rating += 1
         sp.save(update_fields=['rating'])
@@ -161,6 +225,7 @@ class FavoriteSamplePackAPIVIEW(APIView):
         pk = kwargs.get("pk", None)
         if not pk:
             return Response({'ERROR: No pk'})
+        self.check_object_permissions(request, FavoriteSamplePacks.objects.get(pk=pk))
         update_rating_after_fsp_dec(pk)
         fsp = FavoriteSamplePacks.objects.get(id=pk)
         fsp.delete()
@@ -181,20 +246,20 @@ class FavoritePresetPacksViewSet(viewsets.ModelViewSet):
 
 
 class UserAPIVIEW(generics.ListCreateAPIView):
-    # queryset = CustomUser.objects.all()
-    # serializer_class = CustomUserSerializer
+    #queryset = CustomUser.objects.all()
+    #serializer_class = CustomUserSerializer
+
     def post(self, request):
-        serializer = CustomUserSerializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=False)
-            CustomUser.objects.create_user(username=request.data['username'], email=request.data['email'],
+        CustomUser.objects.create_user(username=request.data['username'], email=request.data['email'],
                                            password=request.data['password'])
-        except:
-            return Response(404)
         refresh = RefreshToken.for_user(user=(CustomUser)(CustomUserSerializer))
         dsa = collections.OrderedDict([("refresh", (str)(refresh)), ("access", str(refresh.access_token))])
         return Response(dsa)
-
+    def get(self, request) :
+        if request.GET.get("username",None) is not None:
+            username = request.GET.get("username",None)
+            return JsonResponse(CustomUserSerializer(CustomUser.objects.filter(username=username),many=True).data,safe=False)
+        return HttpResponse('Cannot find user', status=404)
 
 class PresetPackAPIVIEW(generics.ListCreateAPIView):
     def post(self, request):
@@ -229,7 +294,7 @@ class CurrentPresetPackAPIVIEW(generics.ListCreateAPIView):
     def post(self, request):
         pp = request.data['pp_id']
         p = PresetPack.objects.filter(pp_id=pp).values('pp_id', 'name', 'sytheseizer_id__sytheseizer_name',
-                                                       'genere_id__genere_name', 'rating', 'description')
+                                                       'genere_id__genere_name', 'rating', 'description', 'example')
         return JsonResponse(CustomPresetPackSerializer(p, many=True).data, safe=False)
 
 

@@ -88,7 +88,7 @@ class CurentUserFavoriteSamplePacksSerializer(serializers.Serializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('username','email','password')
+        fields = ('username', 'email', 'is_superuser')
 
 
 
@@ -109,7 +109,7 @@ class CustomPresetPackSerializer(serializers.Serializer):
     genere_id__genere_name = serializers.CharField()
     rating = serializers.IntegerField()
     description = serializers.CharField()
-
+    example = serializers.CharField()
 
 class CustomSamplePackSerializer(serializers.Serializer):
     sp_id = serializers.IntegerField()

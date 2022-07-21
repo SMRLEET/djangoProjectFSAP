@@ -96,7 +96,6 @@ class Sample(models.Model):
 class PresetPack(models.Model):
     class Meta:
         unique_together = (('name', 'sytheseizer_id', 'author'))
-
     pp_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)

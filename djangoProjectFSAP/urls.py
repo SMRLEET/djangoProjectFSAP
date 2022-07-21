@@ -35,7 +35,7 @@ urlpatterns = [
     path('api/v1/FPP/', FavoritePresetPackAPIVIEW().as_view()),
 
 
-
+    path('api/v1/get_cur_user/', UserAPIVIEW.as_view()),
 
     path('api/v1/CUPP/', CurentUserFavApiView.as_view()),
     path('api/v1/CUSP/', CurentUserFavSPApiView.as_view()),

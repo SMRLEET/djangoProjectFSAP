@@ -21,3 +21,4 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
                 return bool(obj.user == request.user or (request.user.is_moder or request.user.is_superuser))
             except:
                 return False
+
