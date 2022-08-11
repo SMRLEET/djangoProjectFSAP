@@ -122,8 +122,9 @@ class PresetViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.Gen
 
 class CurentUserFavApiView(APIView):
 
-    def post(self, request):
-        queryset = FavoritePresetPacks.objects.filter(user__username=request.data['username']).values('id',
+    def get(self, request):
+        user = request.user
+        queryset = FavoritePresetPacks.objects.filter(user_id=user.id).values('id',
                                                                                                       'user__username',
                                                                                                       'pp_id_id',
                                                                                                       'pp_id__name',
@@ -134,8 +135,9 @@ class CurentUserFavApiView(APIView):
 
 class CurentUserFavSPApiView(APIView):
 
-    def post(self, request):
-        queryset = FavoriteSamplePacks.objects.filter(user__username=request.data['username']).values('id',
+    def get(self, request):
+        user = request.user
+        queryset = FavoriteSamplePacks.objects.filter(user_id=user.id).values('id',
                                                                                                       'user__username',
                                                                                                       'sp_id_id',
                                                                                                       'sp_id__name',
@@ -246,16 +248,16 @@ class UserAPIVIEW(generics.ListCreateAPIView):
 
 
 class PresetPackAPIVIEW(generics.ListCreateAPIView):
-    def post(self, request):
-        pk = CustomUser.objects.filter(username=request.data['username']).values('id')
-        pk = pk.values_list('id')[0]
+    def get(self, request):
+        user = request.user
+        pk = user.id
         return JsonResponse(PresetPackSerializer(PresetPack.objects.filter(author_id=pk), many=True).data, safe=False)
 
 
 class SamplePackAPIVIEW(generics.ListCreateAPIView):
-    def post(self, request):
-        pk = CustomUser.objects.filter(username=request.data['username']).values('id')
-        pk = pk.values_list('id')[0]
+    def get(self, request):
+        user = request.user
+        pk = user.id
         return JsonResponse(SamplePackSerializer(SamplePack.objects.filter(author_id=pk), many=True).data, safe=False)
 
 
